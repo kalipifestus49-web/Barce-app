@@ -340,13 +340,45 @@ function seedTask(course, title, dueOffsetDays, effort){
   pushNotif(`Added “${title}” — tracking started (${tier.toUpperCase()})`);
 }
 
-// Seed with a realistic spread across tiers
-seedTask('Database Fundamentals', 'ERD Assignment', 1.4, 'medium');
-seedTask('ICG511S', 'Pseudocode Exercise', 3, 'light');
-seedTask('C Programming', 'Lab Report — Structs', 5, 'light');
-seedTask('BMC511S', 'Case Study Write-up', 12, 'heavy');
+const SAVE_KEY = 'fuse-data-v1';
+
+function saveState(){
+  try{
+    const data = {
+      tasks: tasks.map(t => ({ ...t, due: t.due.toISOString() })),
+      notifications,
+      nextId,
+      nowMs: now.getTime()
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  }catch(e){ /* storage unavailable, app still works this session */ }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    tasks = data.tasks.map(t => ({ ...t, due: new Date(t.due) }));
+    notifications = data.notifications || [];
+    nextId = data.nextId || 1;
+    now = new Date(data.nowMs);
+    return true;
+  }catch(e){ return false; }
+}
+
+// Load whatever was saved before. Only seed sample tasks the very first time
+// this app has ever been opened on this phone (nothing saved yet).
+const hadSavedData = loadState();
+if (!hadSavedData){
+  seedTask('Database Fundamentals', 'ERD Assignment', 1.4, 'medium');
+  seedTask('ICG511S', 'Pseudocode Exercise', 3, 'light');
+  seedTask('C Programming', 'Lab Report — Structs', 5, 'light');
+  seedTask('BMC511S', 'Case Study Write-up', 12, 'heavy');
+}
 
 function render(){
+  saveState();
   document.getElementById('demo-now').textContent = `Simulated today: ${fmtNow(now)}`;
 
   const open = tasks.filter(t=>!t.done).sort((a,b)=> daysFromNow(a.due) - daysFromNow(b.due));
