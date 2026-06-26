@@ -3,7 +3,7 @@
 // (alerts while the app is fully closed) need a server later — this
 // covers install + offline + notifications while the app is open/recent.
 
-const CACHE_NAME = 'fuse-v1';
+const CACHE_NAME = 'fuse-v2';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
@@ -12,6 +12,7 @@ const APP_SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
   );
@@ -21,7 +22,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
